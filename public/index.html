@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>فاحص فيبوكس الزومبي</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;800;900&display=swap">
+<style>
+:root{--night:#0a1230;--deep:#14246b;--gold:#ffd24a;--gold2:#e8a317;--ink:#fff;--ok:#5be28a;--warn:#ffb347;--bad:#ff6b6b}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:Tajawal,Tahoma,sans-serif;color:var(--ink);background:radial-gradient(ellipse at 50% 30%,var(--deep),var(--night) 70%);overflow-x:hidden}
+.coins{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.coin{position:absolute;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,var(--gold) 40%,var(--gold2));box-shadow:inset 0 0 0 6px rgba(160,100,0,.35),0 8px 30px rgba(0,0,0,.4);display:grid;place-items:center;color:#8a5a00;font-weight:900;opacity:.35}
+.coin::after{content:"V";font-size:55%}
+main{position:relative;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:32px 18px;text-align:center}
+h1{margin:0;font-size:clamp(30px,7vw,54px);font-weight:900;letter-spacing:0}
+.sub{margin:0;opacity:.8;font-size:17px}
+button#go{font:inherit;font-weight:900;font-size:24px;color:#4a2f00;background:linear-gradient(#ffe483,var(--gold2));border:0;border-radius:18px;padding:18px 54px;cursor:pointer;box-shadow:0 6px 0 #a06a00,0 14px 30px rgba(0,0,0,.4);transition:transform .1s}
+button#go:active{transform:translateY(4px);box-shadow:0 2px 0 #a06a00}
+button#go:disabled{opacity:.7;cursor:wait}
+button#go:focus-visible{outline:3px solid #fff;outline-offset:4px}
+#result{width:min(560px,100%);min-height:10px}
+.card{background:rgba(10,18,48,.82);border:2px solid var(--c,#fff);border-radius:20px;padding:24px;text-align:right;animation:pop .35s ease-out}
+.card h2{margin:0 0 6px;font-size:26px;color:var(--c)}
+.card p{margin:6px 0}
+.mission{display:flex;justify-content:space-between;gap:12px;background:rgba(255,255,255,.08);border-radius:12px;padding:12px 16px;margin-top:10px;font-weight:800;font-size:19px}
+.src{margin-top:16px;font-size:15px;opacity:.9;display:grid;gap:6px}
+.src a{color:var(--gold)}
+.time{margin-top:12px;font-size:13px;opacity:.6}
+@keyframes pop{from{transform:scale(.94);opacity:0}to{transform:none;opacity:1}}
+.spin{display:inline-block;width:20px;height:20px;border:3px solid #4a2f00;border-top-color:transparent;border-radius:50%;animation:r .8s linear infinite;vertical-align:-4px;margin-inline-start:8px}
+@keyframes r{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.card,.spin{animation:none}}
+</style>
+</head>
+<body>
+<div class="coins" id="coins" aria-hidden="true"></div>
+<main>
+  <h1>فيه فيبوكس على الخريطة؟</h1>
+  <p class="sub">يفحص موقعين ويتأكد قبل لا يعطيك الجواب</p>
+  <button id="go">افحص الخريطة</button>
+  <div id="result" aria-live="polite"></div>
+</main>
+<script>
+// خلفية: عملات ذهبية مرسومة بالـ CSS
+const box = document.getElementById('coins');
+for (let i = 0; i < 14; i++) {
+  const c = document.createElement('div');
+  const s = 40 + Math.random() * 90;
+  c.className = 'coin';
+  c.style.cssText = `width:${s}px;height:${s}px;font-size:${s}px;left:${Math.random()*95}%;top:${Math.random()*95}%;transform:rotate(${Math.random()*40-20}deg)`;
+  box.appendChild(c);
+}
+
+const go = document.getElementById('go'), out = document.getElementById('result');
+const esc = (s) => String(s).replace(/[&<>"]/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+function srcLines(sources) {
+  return '<div class="src">' + sources.map((s) =>
+    `<div>${s.ok ? '✅' : '❌'} <a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a>` +
+    (s.ok ? (s.total > 0 ? ` — ${s.total} فيبوكس` : ' — ما في شي') : ` — ${esc(s.error || 'ما اشتغل')}`) + '</div>'
+  ).join('') + '</div>';
+}
+
+function render(d) {
+  const t = `<div class="time">آخر فحص: ${new Date(d.checkedAt).toLocaleString('ar-SA')}</div>`;
+  if (d.status === 'confirmed' && d.found) {
+    const total = d.total;
+    out.innerHTML = `<div class="card" style="--c:var(--ok)"><h2>✅ فيه ${total} فيبوكس اليوم</h2><p>المواقع متطابقة.</p>` +
+      d.zones.map((m) => `<div class="mission"><span>${esc(m.zone)}</span><span>${esc(m.vbucks)} فيبوكس</span></div>`).join('') +
+      srcLines(d.sources) + t + '</div>';
+  } else if (d.status === 'confirmed') {
+    out.innerHTML = `<div class="card" style="--c:var(--gold)"><h2>ما في شي اليوم</h2><p>المواقع متفقة: ما فيه مهمات فيبوكس على الخريطة.</p>${srcLines(d.sources)}${t}</div>`;
+  } else if (d.status === 'conflict') {
+    out.innerHTML = `<div class="card" style="--c:var(--warn)"><h2>⚠️ غير مؤكد</h2><p>المواقع اختلفت. افتح الروابط وشوف بنفسك.</p>${srcLines(d.sources)}${t}</div>`;
+  } else {
+    out.innerHTML = `<div class="card" style="--c:var(--bad)"><h2>ما قدرت أتأكد</h2><p>ما قدرت أقرأ موقعين على الأقل. جرّب بعد شوي.</p>${srcLines(d.sources)}${t}</div>`;
+  }
+}
+
+go.addEventListener('click', async () => {
+  go.disabled = true;
+  go.innerHTML = 'يفحص<span class="spin"></span>';
+  out.innerHTML = '';
+  try {
+    render(await (await fetch('/api/check')).json());
+  } catch (e) {
+    out.innerHTML = '<div class="card" style="--c:var(--bad)"><h2>السيرفر مو شغّال</h2><p>شغّل server.js وحدّث الصفحة.</p></div>';
+  }
+  go.disabled = false;
+  go.textContent = 'افحص الخريطة';
+});
+</script>
+</body>
+</html>
